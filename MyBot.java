@@ -1,8 +1,7 @@
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-/**
- * Starter bot implementation.
- */
 public class MyBot extends Bot {
     /**
      * Main method executed by the game engine for starting the bot.
@@ -22,13 +21,32 @@ public class MyBot extends Bot {
     @Override
     public void doTurn() {
         Ants ants = getAnts();
+        orders.clear();
+        
         for (Tile myAnt : ants.getMyAnts()) {
             for (Aim direction : Aim.values()) {
-                if (ants.getIlk(myAnt, direction).isPassable()) {
-                    ants.issueOrder(myAnt, direction);
+                if (doMoveDirection(myAnt, direction)) {
                     break;
                 }
             }
         }
     }
+    
+    private boolean doMoveDirection(Tile antLoc, Aim direction)
+    {
+    	Ants ants = getAnts();
+    	
+    	//Track all moves and prevent collisions
+    	Tile newLoc = ants.getTile(antLoc, direction);
+    	if(ants.getIlk(newLoc).isUnoccupied() && !orders.containsKey(newLoc))
+    	{
+    		ants.issueOrder(antLoc, direction);
+    		orders.put(newLoc, antLoc);
+    		return true;
+    	}
+    	
+    	return false;
+    }
+    
+    private Map<Tile, Tile> orders = new HashMap<Tile, Tile>();
 }

@@ -1,2 +1,5 @@
 *.class
+*.jar
+*.pyc
 *~
+game_logs
