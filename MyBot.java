@@ -28,6 +28,12 @@ public class MyBot extends Bot {
         orders.clear();
         Map<Tile, Tile> foodTargets = new HashMap<Tile, Tile>();
         
+        // remove hill as possible destination
+        for(Tile myHill : ants.getMyHills())
+        {
+        	orders.put(myHill, null);
+        }
+        
         // Find close food
         List<Route> foodRoutes = new ArrayList<Route>();
         TreeSet<Tile> sortedFood = new TreeSet<Tile>(ants.getFoodTiles());
@@ -45,11 +51,26 @@ public class MyBot extends Bot {
         
         for (Route route : foodRoutes) {
             if (!foodTargets.containsKey(route.getEnd())
-            		&& !foodTargets.containsValue(route.getStart())
+            		&& !orders.containsValue(route.getStart())
             		&& doMoveDirection(route.getStart(), route.getEnd()))
             {
                 foodTargets.put(route.getEnd(), route.getStart());
             }
+        }
+        
+        // unblock the hill
+        for(Tile myHill : ants.getMyHills())
+        {
+        	if(ants.getMyAnts().contains(myHill) && !orders.containsValue(myHill))
+        	{
+        		for(Aim direction : Aim.values())
+        		{
+        			if(doMoveDirection(myHill, direction))
+        			{
+        				break;
+        			}
+        		}
+        	}
         }
     }
     
