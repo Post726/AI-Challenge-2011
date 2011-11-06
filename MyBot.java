@@ -1,12 +1,16 @@
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
+
+import javax.swing.event.ListSelectionEvent;
 
 public class MyBot extends Bot {
     /**
@@ -18,6 +22,11 @@ public class MyBot extends Bot {
      */
     public static void main(String[] args) throws IOException {
         new MyBot().readSystemInput();
+    }
+    
+    public MyBot()
+    {
+    	gen = new Random(983);
     }
     
     /**
@@ -94,18 +103,24 @@ public class MyBot extends Bot {
         	doMoveDirection(route);
         }
         
-        // unblock the hill
-        for(Tile myHill : ants.getMyHills())
+        // explore
+        for(Tile antLoc : sortedAnts)
         {
-        	if(ants.getMyAnts().contains(myHill) && !orders.containsValue(myHill))
+        	if(!orders.containsValue(antLoc))
         	{
+        		List<Aim> directions = new ArrayList<Aim>();
         		for(Aim direction : Aim.values())
         		{
-        			if(doMoveDirection(myHill, direction))
+        			Tile loc = ants.getTile(antLoc, direction);
+        			if(ants.getIlk(loc).isUnoccupied()
+        					&& !orders.containsKey(loc))
         			{
-        				break;
+        				directions.add(direction);
         			}
         		}
+        		
+        		Aim direction = directions.get(gen.nextInt(directions.size()));
+        		doMoveDirection(antLoc, direction);
         	}
         }
     }
@@ -163,4 +178,5 @@ public class MyBot extends Bot {
     
     private Map<Tile, Tile> orders = new HashMap<Tile, Tile>();
     private Set<Tile> enemyHills = new HashSet<Tile>();
+    Random gen;
 }
