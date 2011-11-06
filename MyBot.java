@@ -54,6 +54,15 @@ public class MyBot extends Bot {
         	}
         }
         
+        // add any seen enemy hills
+        for(Tile enemyHill : ants.getEnemyHills())
+        {
+        	if(!enemyHills.contains(enemyHill))
+        	{
+        		enemyHills.add(enemyHill);
+        	}
+        }
+        
         // remove hill as possible destination
         for(Tile myHill : ants.getMyHills())
         {
@@ -82,6 +91,27 @@ public class MyBot extends Bot {
             {
                 foodTargets.put(route.getEnd(), route.getStart());
             }
+        }
+        
+        // attack hills
+        List<Route> hillRoutes = new ArrayList<Route>();
+        for(Tile hillLoc : enemyHills)
+        {
+        	for(Tile antLoc : sortedAnts)
+        	{
+        		if(!orders.containsValue(antLoc))
+        		{
+        			int distance = ants.getDistance(antLoc, hillLoc);
+            		Route route = new Route(antLoc, hillLoc, distance);
+            		hillRoutes.add(route);
+        		}
+        	}
+        }
+        Collections.sort(hillRoutes);
+        
+        for(Route route: hillRoutes)
+        {
+        	doMoveDirection(route.getStart(), route.getEnd());
         }
         
         // explore unseen areas (send each unassigned ant to the closest unseen tile)
@@ -160,4 +190,5 @@ public class MyBot extends Bot {
     
     private Map<Tile, Tile> orders = new HashMap<Tile, Tile>();
     private Set<Tile> unseenTiles;
+    private Set<Tile> enemyHills = new HashSet<Tile>();
 }
