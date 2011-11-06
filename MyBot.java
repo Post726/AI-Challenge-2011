@@ -3,7 +3,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,30 +29,7 @@ public class MyBot extends Bot {
         Ants ants = getAnts();
         orders.clear();
         Map<Tile, Tile> foodTargets = new HashMap<Tile, Tile>();
-        
-        // initialize unseenTiles
-        if(unseenTiles == null)
-        {
-        	unseenTiles = new HashSet<Tile>();
-        	for(int row = 0; row < ants.getRows(); ++row)
-        	{
-        		for(int col = 0; col < ants.getCols(); ++col)
-        		{
-        			unseenTiles.add(new Tile(row, col));
-        		}
-        	}
-        }
-        
-        // remove any new tiles seen
-        for(Iterator<Tile> locIter = unseenTiles.iterator(); locIter.hasNext(); )
-        {
-        	Tile next = locIter.next();
-        	if(ants.isVisible(next))
-        	{
-        		locIter.remove();
-        	}
-        }
-        
+		
         // add any seen enemy hills
         for(Tile enemyHill : ants.getEnemyHills())
         {
@@ -77,9 +53,11 @@ public class MyBot extends Bot {
         {
         	for(Tile antLoc : sortedAnts)
         	{
-        		int distance = ants.getDistance(antLoc, foodLoc);
-        		Route route = new Route(antLoc, foodLoc, distance);
-        		foodRoutes.add(route);
+        		Route route = new Route(antLoc, foodLoc, ants);
+        		if(route.getDistance() > 0)
+    			{
+        			foodRoutes.add(route);
+    			}
         	}
         }
         Collections.sort(foodRoutes);
@@ -87,7 +65,7 @@ public class MyBot extends Bot {
         for (Route route : foodRoutes) {
             if (!foodTargets.containsKey(route.getEnd())
             		&& !orders.containsValue(route.getStart())
-            		&& doMoveDirection(route.getStart(), route.getEnd()))
+            		&& doMoveDirection(route))
             {
                 foodTargets.put(route.getEnd(), route.getStart());
             }
@@ -101,9 +79,11 @@ public class MyBot extends Bot {
         	{
         		if(!orders.containsValue(antLoc))
         		{
-        			int distance = ants.getDistance(antLoc, hillLoc);
-            		Route route = new Route(antLoc, hillLoc, distance);
-            		hillRoutes.add(route);
+            		Route route = new Route(antLoc, hillLoc, ants);
+            		if(route.getDistance() > 0)
+        			{
+            			hillRoutes.add(route);
+        			}
         		}
         	}
         }
@@ -111,31 +91,7 @@ public class MyBot extends Bot {
         
         for(Route route: hillRoutes)
         {
-        	doMoveDirection(route.getStart(), route.getEnd());
-        }
-        
-        // explore unseen areas (send each unassigned ant to the closest unseen tile)
-        for(Tile antLoc : sortedAnts)
-        {
-        	if(!orders.containsValue(antLoc))
-        	{
-        		List<Route> unseenRoutes = new ArrayList<Route>();
-        		for(Tile unseenLoc : unseenTiles)
-        		{
-        			int distance = ants.getDistance(antLoc, unseenLoc);
-        			Route route = new Route(antLoc, unseenLoc, distance);
-        			unseenRoutes.add(route);
-        		}
-        		Collections.sort(unseenRoutes);
-        		
-        		for(Route route : unseenRoutes)
-        		{
-        			if(doMoveDirection(route.getStart(), route.getEnd()))
-        			{
-        				break;
-        			}
-        		}
-        	}
+        	doMoveDirection(route);
         }
         
         // unblock the hill
@@ -188,7 +144,23 @@ public class MyBot extends Bot {
     	return false;
     }
     
+    private boolean doMoveDirection(Route route)
+    {
+    	Ants ants = getAnts();
+    	
+    	//Track all moves and prevent collisions
+    	List<Aim> directions = ants.getDirections(route.getStart(), route.getNext());
+    	for(Aim direction : directions)
+    	{
+	    	if(doMoveDirection(route.getStart(), direction))
+	    	{
+	    		return true;
+	    	}
+    	}
+    	
+    	return false;
+    }
+    
     private Map<Tile, Tile> orders = new HashMap<Tile, Tile>();
-    private Set<Tile> unseenTiles;
     private Set<Tile> enemyHills = new HashSet<Tile>();
 }

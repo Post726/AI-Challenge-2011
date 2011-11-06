@@ -1,3 +1,10 @@
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Represents a route from one tile to another.
  */
@@ -6,13 +13,16 @@ public class Route implements Comparable<Route>
 {
 	private final Tile start;
 	private final Tile end;
-	private final int distance;
+	private final List<Tile> path;
 	
-	public Route(Tile start, Tile end, int distance)
+	public Route(Tile start, Tile end, Ants ants)
 	{
 		this.start = start;
 		this.end = end;
-		this.distance = distance;
+		
+		this.path = new ArrayList<Tile>();
+		
+		findBestPath(ants);
 	}
 
 	public Tile getStart()
@@ -27,13 +37,92 @@ public class Route implements Comparable<Route>
 	
 	public int getDistance()
 	{
-		return distance;
+		return path.size();
+	}
+	
+	public Tile getNext()
+	{
+		return path.get(0);
+	}
+	
+	// A* search
+	private void findBestPath(Ants ants)
+	{
+		Set<Tile> visited = new HashSet<Tile>();
+		Set<Tile> available = new HashSet<Tile>();
+		Map<Tile, Tile> predecessor = new HashMap<Tile, Tile>();
+		
+		Map<Tile, Double> f = new HashMap<Tile, Double>(); // node score
+		Map<Tile, Double> g = new HashMap<Tile, Double>(); // node cost
+		// heuristic is sqrt(ants.getDistance())
+		
+		// Initialize states for start 
+		available.add(this.start);
+		g.put(this.start, 0.0);
+		f.put(this.start, Math.sqrt((double) ants.getDistance(this.start, this.end)));
+		
+		while(!available.isEmpty())
+		{
+			// Find the best next move
+			double lowestScore = Double.MAX_VALUE;
+			Tile best = null;
+			for(Tile loc : available)
+			{
+				if(f.get(loc) < lowestScore)
+				{
+					lowestScore = f.get(loc);
+					best = loc;
+				}
+			}
+			
+			available.remove(best);
+			visited.add(best);
+			
+			// Found the end
+			if(best.equals(this.end))
+			{
+				Tile loc = this.end;
+				while(loc != this.start)
+				{
+					path.add(0, loc);
+					loc = predecessor.get(loc);
+				}
+				return;
+			}
+			
+			List<Tile> availableNeighbors = new ArrayList<Tile>();
+			for(Aim direction : Aim.values())
+			{
+				Tile loc = ants.getTile(best, direction);
+				if( (ants.getIlk(loc).isUnoccupied() || loc.equals(this.end))
+						&& !visited.contains(loc))
+				{
+					availableNeighbors.add(loc);
+				}
+			}
+			
+			for(Tile next : availableNeighbors)
+			{	
+				double cost = g.get(best) + 1.0;
+				if(!available.contains(next) || cost < g.get(next))
+				{
+					available.add(next); // add it if it is not already there
+					
+					g.put(next, cost);
+					
+					double h = Math.sqrt((double) ants.getDistance(next, this.end));
+					f.put(next, cost + h);
+					
+					predecessor.put(next, best);
+				}
+			}
+		}
 	}
 
 	@Override
 	public int compareTo(Route route)
 	{
-		return distance - route.distance;
+		return getDistance() - route.getDistance();
 	}
 	
 	@Override
