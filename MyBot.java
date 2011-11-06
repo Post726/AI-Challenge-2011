@@ -2,8 +2,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
 public class MyBot extends Bot {
@@ -27,6 +30,29 @@ public class MyBot extends Bot {
         Ants ants = getAnts();
         orders.clear();
         Map<Tile, Tile> foodTargets = new HashMap<Tile, Tile>();
+        
+        // initialize unseenTiles
+        if(unseenTiles == null)
+        {
+        	unseenTiles = new HashSet<Tile>();
+        	for(int row = 0; row < ants.getRows(); ++row)
+        	{
+        		for(int col = 0; col < ants.getCols(); ++col)
+        		{
+        			unseenTiles.add(new Tile(row, col));
+        		}
+        	}
+        }
+        
+        // remove any new tiles seen
+        for(Iterator<Tile> locIter = unseenTiles.iterator(); locIter.hasNext(); )
+        {
+        	Tile next = locIter.next();
+        	if(ants.isVisible(next))
+        	{
+        		locIter.remove();
+        	}
+        }
         
         // remove hill as possible destination
         for(Tile myHill : ants.getMyHills())
@@ -56,6 +82,30 @@ public class MyBot extends Bot {
             {
                 foodTargets.put(route.getEnd(), route.getStart());
             }
+        }
+        
+        // explore unseen areas (send each unassigned ant to the closest unseen tile)
+        for(Tile antLoc : sortedAnts)
+        {
+        	if(!orders.containsValue(antLoc))
+        	{
+        		List<Route> unseenRoutes = new ArrayList<Route>();
+        		for(Tile unseenLoc : unseenTiles)
+        		{
+        			int distance = ants.getDistance(antLoc, unseenLoc);
+        			Route route = new Route(antLoc, unseenLoc, distance);
+        			unseenRoutes.add(route);
+        		}
+        		Collections.sort(unseenRoutes);
+        		
+        		for(Route route : unseenRoutes)
+        		{
+        			if(doMoveDirection(route.getStart(), route.getEnd()))
+        			{
+        				break;
+        			}
+        		}
+        	}
         }
         
         // unblock the hill
@@ -109,4 +159,5 @@ public class MyBot extends Bot {
     }
     
     private Map<Tile, Tile> orders = new HashMap<Tile, Tile>();
+    private Set<Tile> unseenTiles;
 }
