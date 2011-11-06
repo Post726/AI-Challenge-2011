@@ -1,6 +1,10 @@
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 public class MyBot extends Bot {
     /**
@@ -22,12 +26,29 @@ public class MyBot extends Bot {
     public void doTurn() {
         Ants ants = getAnts();
         orders.clear();
+        Map<Tile, Tile> foodTargets = new HashMap<Tile, Tile>();
         
-        for (Tile myAnt : ants.getMyAnts()) {
-            for (Aim direction : Aim.values()) {
-                if (doMoveDirection(myAnt, direction)) {
-                    break;
-                }
+        // Find close food
+        List<Route> foodRoutes = new ArrayList<Route>();
+        TreeSet<Tile> sortedFood = new TreeSet<Tile>(ants.getFoodTiles());
+        TreeSet<Tile> sortedAnts = new TreeSet<Tile>(ants.getMyAnts());
+        for(Tile foodLoc : sortedFood)
+        {
+        	for(Tile antLoc : sortedAnts)
+        	{
+        		int distance = ants.getDistance(antLoc, foodLoc);
+        		Route route = new Route(antLoc, foodLoc, distance);
+        		foodRoutes.add(route);
+        	}
+        }
+        Collections.sort(foodRoutes);
+        
+        for (Route route : foodRoutes) {
+            if (!foodTargets.containsKey(route.getEnd())
+            		&& !foodTargets.containsValue(route.getStart())
+            		&& doMoveDirection(route.getStart(), route.getEnd()))
+            {
+                foodTargets.put(route.getEnd(), route.getStart());
             }
         }
     }
@@ -38,11 +59,29 @@ public class MyBot extends Bot {
     	
     	//Track all moves and prevent collisions
     	Tile newLoc = ants.getTile(antLoc, direction);
-    	if(ants.getIlk(newLoc).isUnoccupied() && !orders.containsKey(newLoc))
+    	if(ants.getIlk(newLoc).isUnoccupied()
+    			&& !orders.containsKey(newLoc))
     	{
     		ants.issueOrder(antLoc, direction);
     		orders.put(newLoc, antLoc);
     		return true;
+    	}
+    	
+    	return false;
+    }
+    
+    private boolean doMoveDirection(Tile antLoc, Tile destLoc)
+    {
+    	Ants ants = getAnts();
+    	
+    	//Track all moves and prevent collisions
+    	List<Aim> directions = ants.getDirections(antLoc, destLoc);
+    	for(Aim direction : directions)
+    	{
+	    	if(doMoveDirection(antLoc, direction))
+	    	{
+	    		return true;
+	    	}
     	}
     	
     	return false;
