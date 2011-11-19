@@ -22,7 +22,8 @@ public class Route implements Comparable<Route>
 		
 		this.path = new ArrayList<Tile>();
 		
-		findBestPath(ants);
+		if(ants.getIlk(start).isPassable() && ants.getIlk(end).isPassable())
+			findBestPath(ants);
 	}
 
 	public Tile getStart()
@@ -63,6 +64,9 @@ public class Route implements Comparable<Route>
 		
 		while(!available.isEmpty())
 		{
+			if(ants.getTimeRemaining() < 100)
+				return;
+			
 			// Find the best next move
 			double lowestScore = Double.MAX_VALUE;
 			Tile best = null;
@@ -94,7 +98,7 @@ public class Route implements Comparable<Route>
 			for(Aim direction : Aim.values())
 			{
 				Tile loc = ants.getTile(best, direction);
-				if( (ants.getIlk(loc).isUnoccupied() || loc.equals(this.end))
+				if( (ants.getIlk(loc).isPassable() || loc.equals(this.end))
 						&& !visited.contains(loc))
 				{
 					availableNeighbors.add(loc);
