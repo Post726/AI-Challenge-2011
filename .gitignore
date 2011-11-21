@@ -2,4 +2,5 @@
 *.jar
 *.pyc
 *~
+*.zip
 game_logs

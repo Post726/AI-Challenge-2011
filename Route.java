@@ -11,9 +11,9 @@ import java.util.Set;
 
 public class Route implements Comparable<Route>
 {
-	private final Tile start;
-	private final Tile end;
-	private final List<Tile> path;
+	private Tile start;
+	private Tile end;
+	private List<Tile> path;
 	
 	public Route(Tile start, Tile end, Ants ants)
 	{
@@ -24,6 +24,13 @@ public class Route implements Comparable<Route>
 		
 		if(ants.getIlk(start).isPassable() && ants.getIlk(end).isPassable())
 			findBestPath(ants);
+		else
+			System.err.println("Error: start/end of rout is not passable");
+	}
+	
+	public boolean isValid()
+	{
+		return !path.isEmpty(); 
 	}
 
 	public Tile getStart()
@@ -38,16 +45,32 @@ public class Route implements Comparable<Route>
 	
 	public int getDistance()
 	{
+		if(path.isEmpty())
+		{
+			return -1;
+		}
+		
 		return path.size();
 	}
 	
 	public Tile getNext()
 	{
+		if(path.isEmpty())
+		{
+			return null;
+		}
+		
 		return path.get(0);
 	}
 	
+	public void moveNext()
+	{
+		if(!path.isEmpty())
+			this.start = path.remove(0);
+	}
+	
 	// A* search
-	private void findBestPath(Ants ants)
+	public void findBestPath(Ants ants)
 	{
 		Set<Tile> visited = new HashSet<Tile>();
 		Set<Tile> available = new HashSet<Tile>();
@@ -64,8 +87,11 @@ public class Route implements Comparable<Route>
 		
 		while(!available.isEmpty())
 		{
-			if(ants.getTimeRemaining() < 100)
+			if(ants.getTimeRemaining() < timeoutRoute)
+			{
+				//System.err.println("Out of Time!");
 				return;
+			}
 			
 			// Find the best next move
 			double lowestScore = Double.MAX_VALUE;
@@ -98,7 +124,8 @@ public class Route implements Comparable<Route>
 			for(Aim direction : Aim.values())
 			{
 				Tile loc = ants.getTile(best, direction);
-				if( (ants.getIlk(loc).isPassable() || loc.equals(this.end))
+				if( ants.getIlk(loc).isPassable() 
+						&& !ants.getMyHills().contains(loc)
 						&& !visited.contains(loc))
 				{
 					availableNeighbors.add(loc);
@@ -121,6 +148,8 @@ public class Route implements Comparable<Route>
 				}
 			}
 		}
+		
+		System.err.println("Error: No Path!");
 	}
 
 	@Override
@@ -147,4 +176,6 @@ public class Route implements Comparable<Route>
 		
 		return result;
 	}
+	
+	private final int timeoutRoute = 250;
 }
