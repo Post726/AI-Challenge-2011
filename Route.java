@@ -22,6 +22,9 @@ public class Route implements Comparable<Route>
 		
 		this.path = new ArrayList<Tile>();
 		
+		if(start.equals(end))
+			return;
+		
 		if(ants.getIlk(start).isPassable() && ants.getIlk(end).isPassable())
 			findBestPath(ants);
 		else
@@ -88,16 +91,16 @@ public class Route implements Comparable<Route>
 		while(!available.isEmpty())
 		{
 			if(ants.getTimeRemaining() < timeoutRoute)
-			{
-				//System.err.println("Out of Time!");
 				return;
-			}
 			
 			// Find the best next move
 			double lowestScore = Double.MAX_VALUE;
 			Tile best = null;
 			for(Tile loc : available)
 			{
+				if(ants.getTimeRemaining() < timeoutRoute)
+					return;
+				
 				if(f.get(loc) < lowestScore)
 				{
 					lowestScore = f.get(loc);
@@ -177,5 +180,5 @@ public class Route implements Comparable<Route>
 		return result;
 	}
 	
-	private final int timeoutRoute = 250;
+	private final int timeoutRoute = 175;
 }

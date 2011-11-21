@@ -85,8 +85,6 @@ public class MyBot extends Bot
         }
         
         doTasks();
-        
-        System.err.println(ants.getTimeRemaining());
     }
     
     private void checkTasks()
@@ -164,23 +162,6 @@ public class MyBot extends Bot
     	return false;
     }
     
-    private boolean doMoveDirection(Tile antLoc, Tile destLoc)
-    {
-    	Ants ants = getAnts();
-    	
-    	//Track all moves and prevent collisions
-    	List<Aim> directions = getAllDirections(ants.getDirections(antLoc, destLoc));
-    	for(Aim direction : directions)
-    	{
-	    	if(doMoveDirection(antLoc, direction))
-	    	{
-	    		return true;
-	    	}
-    	}
-    	
-    	return false;
-    }
-    
     // Move in the direction the route states
     private Tile doMoveDirection(Route route)
     {
@@ -234,60 +215,48 @@ public class MyBot extends Bot
         	}
         }
         
-        // Evaluate all food-ant combinations
+        // Task all available food
         while(sortedFood.size() != 0)
         {
-        	if(ants.getTimeRemaining() < timeoutFood)
-        		return;
-        	
         	Tile foodLoc = sortedFood.first();
         	
-        	List<Route> foodRoutes = new ArrayList<Route>();
-        	
+        	int minDistance = Integer.MAX_VALUE;
+        	boolean assigned = false;
         	for(Tile antLoc : sortedAnts)
         	{
-        		Route route;
-        		if(tasks.containsKey(antLoc)
-        				&& tasks.get(antLoc).route.getEnd().equals(foodLoc))
-        		{
-        			route = tasks.get(antLoc).route;
-        		}
-        		else
-        		{
-        			route = new Route(antLoc, foodLoc, ants);
-        		}
+        		if(ants.getTimeRemaining() < timeoutFood)
+            		return;
         		
-        		if(route.isValid())
-    			{
-        			foodRoutes.add(route);
-    			}
-        	}
-        	Collections.sort(foodRoutes);
-        	
-        	boolean assigned = false;
-        	for (Route route : foodRoutes)
-        	{
-        		Tile antLoc = route.getStart();
-        		
-        		// Closest ant does not have a task and can get the food
-        		if(!tasks.containsKey(antLoc))
+        		int distance = ants.getDistance(antLoc, foodLoc);
+        		if(distance < minDistance)
         		{
-        			sortedFood.remove(foodLoc);
-        			tasks.put(antLoc, new Task(Task.Type.GATHER, route));
-        			assigned = true;
-        			break;
+        			minDistance = distance;
+        			Route route = new Route(antLoc, foodLoc, ants);
+        			
+        			if(!route.isValid())
+        			{
+        				continue;
+        			}
+        			
+        			if(!tasks.containsKey(antLoc))
+            		{
+            			sortedFood.remove(foodLoc);
+            			tasks.put(antLoc, new Task(Task.Type.GATHER, route));
+            			assigned = true;
+            			break;
+            		}
+            		
+            		// Closest ant is tasked with food which is farther
+            		else if(tasks.containsKey(antLoc)
+            				&& tasks.get(antLoc).route.getDistance() > route.getDistance())
+    				{
+            			sortedFood.remove(foodLoc);
+            			sortedFood.add(tasks.get(antLoc).route.getEnd());
+            			tasks.get(antLoc).route = route;
+            			assigned = true;
+            			break;
+    				}
         		}
-        		
-        		// Closest ant is tasked with food which is farther
-        		else if(tasks.containsKey(antLoc)
-        				&& tasks.get(antLoc).route.getDistance() > route.getDistance())
-				{
-        			sortedFood.remove(foodLoc);
-        			sortedFood.add(tasks.get(antLoc).route.getEnd());
-        			tasks.get(antLoc).route = route;
-        			assigned = true;
-        			break;
-				}
         	}
         	
         	// All ants are assigned to closer food
@@ -350,53 +319,6 @@ public class MyBot extends Bot
         
         Route route = new Route(antLoc, closestEnemy, ants);
         return doMoveDirection(route) != null;
-    }
-    
-    private boolean moveOut(Ants ants, Tile antLoc)
-    {
-    	Tile closestHill = null;
-    	int minDistance = Integer.MAX_VALUE;
-    	for(Tile hillLoc : ants.getMyHills())
-        {
-    		int distance = ants.getDistance(antLoc, hillLoc);
-    		if(distance < minDistance)
-			{
-    			minDistance = distance;
-    			closestHill = hillLoc;
-			}
-        }
-		
-		if(closestHill != null)
-		{
-			if(closestHill.equals(antLoc))
-			{
-				return randomDir(ants, antLoc) != null;
-			}
-			
-			double rowDelta = antLoc.getRow() - closestHill.getRow();
-			double colDelta = antLoc.getCol() - closestHill.getCol();
-			double curAngle = Math.atan(rowDelta/colDelta);
-			
-			// account for quadrant (atan math)
-			if(colDelta < 0)
-				curAngle += Math.PI;
-			
-			// account for wall crossing
-			if((Math.abs(rowDelta) > ants.getRows() - Math.abs(rowDelta)) || (Math.abs(colDelta) > ants.getCols() - Math.abs(colDelta)))
-				curAngle += Math.PI;
-			
-			double angle = curAngle + gen.nextDouble()*Math.PI/2 - Math.PI/4;
-			
-			double curRange = Math.sqrt(minDistance);
-			double range = curRange + gen.nextDouble()*10;
-			
-			int row = ((int)Math.round(closestHill.getRow() + Math.sin(angle)*range)) % ants.getRows();
-			int col = ((int)Math.round(closestHill.getCol() + Math.cos(angle)*range)) % ants.getCols();
-
-			return doMoveDirection(antLoc, new Tile(row, col));
-		}
-		
-        return false;
     }
     
     private boolean moveHome(Ants ants, Tile antLoc)
@@ -486,11 +408,11 @@ public class MyBot extends Bot
     	return directions;
     }
     
-    private Map<Tile, Tile> orders = new HashMap<Tile, Tile>();
-    private Map<Tile, Task> tasks = new HashMap<Tile, Task>();
-    private Set<Tile> enemyHills = new HashSet<Tile>();
+    private HashMap<Tile, Tile> orders = new HashMap<Tile, Tile>();
+    private HashMap<Tile, Task> tasks = new HashMap<Tile, Task>();
+    private HashSet<Tile> enemyHills = new HashSet<Tile>();
     Random gen;
-    private final int timeoutFood = 200;
+    private final int timeoutFood = 250;
     private final int timeoutOther = 150;
     private final int timeoutTask = 50;
    }
