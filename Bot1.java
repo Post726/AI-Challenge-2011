@@ -10,7 +10,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class MyBot extends Bot
+public class Bot1 extends Bot
 {
     /**
      * Main method executed by the game engine for starting the bot.
@@ -21,10 +21,10 @@ public class MyBot extends Bot
      */
     public static void main(String[] args) throws IOException
     {
-        new MyBot().readSystemInput();
+        new Bot1().readSystemInput();
     }
     
-    public MyBot()
+    public Bot1()
     {
     	gen = new Random();
     }
