@@ -102,14 +102,14 @@ public class Bot1 extends Bot
     		}
     		
     		// Check if food target is gone
-    		else if(entry.getValue().type == Task.Type.GATHER
+    		else if(entry.getValue().type == TaskType.GATHER
     				&& ants.getIlk(entry.getValue().route.getEnd()) != Ilk.FOOD)
     		{
     			tasks.remove(entry.getKey());
     		}
     		
     		// Check if hill target is gone
-    		else if(entry.getValue().type == Task.Type.ATTACK_HILL
+    		else if(entry.getValue().type == TaskType.ATTACK
     				&& !enemyHills.contains(entry.getValue().route.getEnd()))
     		{
     			tasks.remove(entry.getKey());
@@ -209,7 +209,7 @@ public class Bot1 extends Bot
         for(Map.Entry<Tile, Task> entry : tasks.entrySet())
         {
         	// Remove food which has already been tasked
-        	if(entry.getValue().type == Task.Type.GATHER)
+        	if(entry.getValue().type == TaskType.GATHER)
         	{
         		sortedFood.remove(entry.getValue().route.getEnd());
         	}
@@ -241,7 +241,7 @@ public class Bot1 extends Bot
         			if(!tasks.containsKey(antLoc))
             		{
             			sortedFood.remove(foodLoc);
-            			tasks.put(antLoc, new Task(Task.Type.GATHER, route));
+            			tasks.put(antLoc, new Task(TaskType.GATHER, route));
             			assigned = true;
             			break;
             		}
@@ -292,7 +292,7 @@ public class Bot1 extends Bot
         
         for(Route route: hillRoutes)
         {
-        	tasks.put(antLoc, new Task(Task.Type.ATTACK_HILL, route));
+        	tasks.put(antLoc, new Task(TaskType.ATTACK, route));
         	return true;
         }
         
