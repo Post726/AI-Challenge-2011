@@ -77,17 +77,44 @@ public class Bot3 extends Bot
     
     private void AssignTasks(Ants ants)
     {
+    	int numAttackers = 0;
+    	int numGatherers = 0;
+    	
+    	for(Map.Entry<Tile, TaskType> entry : tasks.entrySet())
+    	{
+    		if(entry.getValue() == TaskType.ATTACK)
+    		{
+    			++numAttackers;
+    		}
+    		else if(entry.getValue() == TaskType.GATHER)
+    		{
+    			++numGatherers;
+    		}
+    	}
+    	
     	for(Tile antLoc : ants.getMyAnts())
     	{
     		if(!tasks.containsKey(antLoc))
     		{
-    			double rand = gen.nextDouble();
+    			int enemiesVisible = 0;
+    			if(ants.getEnemyAnts().size() != 0)
+    			{
+    				enemiesVisible = 1;
+    			}
     			
-    			if(rand < .333)
+    			int moreAttackers = 0;
+    			if(numAttackers > numGatherers)
+    			{
+    				moreAttackers = 1;
+    			}
+    			
+    			double rand = gen.nextDouble();
+    			int row = 2*enemiesVisible + moreAttackers;
+    			if(rand < taskNode[row][0])
     			{
     				tasks.put(antLoc, TaskType.ATTACK);
     			}
-    			else if(rand < .667)
+    			else if(rand < taskNode[row][1] + taskNode[row][0])
     			{
     				tasks.put(antLoc, TaskType.GATHER);
     			}
@@ -122,34 +149,43 @@ public class Bot3 extends Bot
         }
     	
     	HashMap<Tile, Double> tmpAttackMap = new HashMap<Tile, Double>(diffusionMap_attack);
+    	HashSet<Tile> attackTilesSet = new HashSet<Tile>();
     	HashMap<Tile, Double> tmpGatherMap = new HashMap<Tile, Double>(diffusionMap_gather);
+    	HashSet<Tile> gatherTilesSet = new HashSet<Tile>();
     	HashMap<Tile, Double> tmpGuardMap = new HashMap<Tile, Double>(diffusionMap_guard);
+    	HashSet<Tile> guardTilesSet = new HashSet<Tile>();
     	
-    	setTiles(tmpAttackMap, ants.getEnemyHills(), VERY_POS_FORCE);
-    	setTiles(tmpAttackMap, ants.getEnemyAnts(), POS_FORCE);
-    	setTiles(tmpAttackMap, ants.getMyAnts(), NEG_FORCE);
-    	updateMap(tmpAttackMap, diffusionMap_attack);
+    	setTiles(tmpAttackMap, attackTilesSet, ants.getEnemyHills(), VERY_POS_FORCE);
+    	setTiles(tmpAttackMap, attackTilesSet, ants.getEnemyAnts(), POS_FORCE);
+    	setTiles(tmpAttackMap, attackTilesSet, ants.getMyAnts(), NEG_FORCE);
+    	updateMap(tmpAttackMap, attackTilesSet, diffusionMap_attack);
     	
-    	setTiles(tmpGatherMap, ants.getEnemyAnts(), NEG_FORCE);
-    	setTiles(tmpGatherMap, ants.getMyHills(), NEG_FORCE);
-    	setTiles(tmpGatherMap, ants.getMyAnts(), NEG_FORCE);
-    	setTiles(tmpGatherMap, ants.getFoodTiles(), VERY_POS_FORCE);
-    	updateMap(tmpGatherMap, diffusionMap_gather);
+    	setTiles(tmpGatherMap, gatherTilesSet, ants.getEnemyAnts(), NEG_FORCE);
+    	setTiles(tmpGatherMap, gatherTilesSet, ants.getMyHills(), NEG_FORCE);
+    	setTiles(tmpGatherMap, gatherTilesSet, ants.getMyAnts(), NEG_FORCE);
+    	setTiles(tmpGatherMap, gatherTilesSet, ants.getFoodTiles(), VERY_POS_FORCE);
+    	updateMap(tmpGatherMap, attackTilesSet, diffusionMap_gather);
     	
-    	setTiles(tmpGuardMap, ants.getMyHills(), VERY_POS_FORCE);
-    	setTiles(tmpGuardMap, ants.getMyAnts(), NEG_FORCE);
-    	updateMap(tmpGuardMap, diffusionMap_guard);
+    	setTiles(tmpGuardMap, guardTilesSet, ants.getMyHills(), VERY_POS_FORCE);
+    	setTiles(tmpGuardMap, guardTilesSet, ants.getMyAnts(), NEG_FORCE);
+    	updateMap(tmpGuardMap, guardTilesSet, diffusionMap_guard);
     }
     
-    private void setTiles(HashMap<Tile, Double> map, Set<Tile> set, double value)
+    private void setTiles(HashMap<Tile, Double> map, Set<Tile> tilesSet, Set<Tile> set, double value)
     {
     	for(Tile tile : set)
     	{
+    		if(tilesSet.contains(tile))
+			{
+    			continue;
+			}
+    		
     		map.put(tile, value);
+    		tilesSet.add(tile);
     	}
     }
     
-    private void updateMap(HashMap<Tile, Double> oldMap, HashMap<Tile, Double> newMap)
+    private void updateMap(HashMap<Tile, Double> oldMap, Set<Tile> tilesSet, HashMap<Tile, Double> newMap)
     {
     	Ants ants = getAnts();
     	
@@ -160,6 +196,13 @@ public class Bot3 extends Bot
     		if(ants.getIlk(tile) == Ilk.WATER)
     		{
     			newMap.put(tile, 0.0);
+    			continue;
+    		}
+    		
+    		if(tilesSet.contains(tile))
+    		{
+    			newMap.put(tile, oldMap.get(tile));
+    			continue;
     		}
     		
     		double sum = 0.0;
@@ -242,6 +285,19 @@ public class Bot3 extends Bot
 			return -a.compareTo(b);
 		}
 	}
+	
+	// (Enemy Visible) (More Attackers than Gatherers) 
+    //              \   /
+    //             (Task)
+    
+    // Conditional Probability Table
+    private double[][] taskNode = {
+    		// Prob Attacker, Prob Gatherer, Prob Guard
+    		{		0.35,		0.45,			0.20}, // Enemy not Visible, Less Attackers than Gatherers (or equal)
+    		{		0.25,		0.55,			0.20}, // Enemy not Visible, More Attackers than Gatherers
+    		{		0.40,		0.30,			0.30}, // Enemy Visible, Less Attackers than Gatherers (or equal)
+    		{		0.35,		0.35,			0.30}  // Enemy Visible, More Attackers than Gatherers 
+    };
 
     private final double POS_FORCE = 500;
     private final double VERY_POS_FORCE = 1000;

@@ -91,25 +91,32 @@ public class Bot2 extends Bot
         }
     	
     	HashMap<Tile, Double> tmpDiffusionMap = new HashMap<Tile, Double>(diffusionMap);
+    	HashSet<Tile> tilesSet = new HashSet<Tile>();
     	
-    	setTiles(tmpDiffusionMap, ants.getEnemyHills(), VERY_POS_FORCE);
-    	setTiles(tmpDiffusionMap, ants.getEnemyAnts(), POS_FORCE);
-    	setTiles(tmpDiffusionMap, ants.getMyHills(), POS_FORCE);
-    	setTiles(tmpDiffusionMap, ants.getMyAnts(), NEG_FORCE);
-    	setTiles(tmpDiffusionMap, ants.getFoodTiles(), VERY_POS_FORCE);
+    	setTiles(tmpDiffusionMap, tilesSet, ants.getEnemyHills(), VERY_POS_FORCE);
+    	setTiles(tmpDiffusionMap, tilesSet, ants.getEnemyAnts(), POS_FORCE);
+    	setTiles(tmpDiffusionMap, tilesSet, ants.getMyHills(), POS_FORCE);
+    	setTiles(tmpDiffusionMap, tilesSet, ants.getMyAnts(), NEG_FORCE);
+    	setTiles(tmpDiffusionMap, tilesSet, ants.getFoodTiles(), VERY_POS_FORCE);
     	
-    	updateMap(tmpDiffusionMap, diffusionMap);
+    	updateMap(tmpDiffusionMap, tilesSet, diffusionMap);
     }
     
-    private void setTiles(HashMap<Tile, Double> map, Set<Tile> set, double value)
+    private void setTiles(HashMap<Tile, Double> map, Set<Tile> tilesSet, Set<Tile> set, double value)
     {
     	for(Tile tile : set)
     	{
+    		if(tilesSet.contains(tile))
+			{
+    			continue;
+			}
+    		
     		map.put(tile, value);
+    		tilesSet.add(tile);
     	}
     }
     
-    private void updateMap(HashMap<Tile, Double> oldMap, HashMap<Tile, Double> newMap)
+    private void updateMap(HashMap<Tile, Double> oldMap, Set<Tile> tilesSet, HashMap<Tile, Double> newMap)
     {
     	Ants ants = getAnts();
     	
@@ -120,6 +127,13 @@ public class Bot2 extends Bot
     		if(ants.getIlk(tile) == Ilk.WATER)
     		{
     			newMap.put(tile, 0.0);
+    			continue;
+    		}
+    		
+    		if(tilesSet.contains(tile))
+    		{
+    			newMap.put(tile, oldMap.get(tile));
+    			continue;
     		}
     		
     		double sum = 0.0;
