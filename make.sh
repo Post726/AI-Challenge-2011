@@ -1,16 +1,15 @@
-@echo off
-rem clean
-del *.class
-del *.jar
+cd bin
+rm *.class
+rm *.jar
 
-javac Bot1.java
+javac ../src/Bot1.java -sourcepath ../src/ -d .
 jar cvfm Bot1.jar Manifest1.txt *.class
-del *.class
+rm *.class
 
-javac Bot2.java
+javac ../src/Bot2.java -sourcepath ../src/ -d .
 jar cvfm Bot2.jar Manifest2.txt *.class 
-del *.class
+rm *.class
 
-javac Bot3.java
+javac ../src/Bot3.java -sourcepath ../src/ -d .
 jar cvfm Bot3.jar Manifest3.txt *.class 
-del *.class
+rm *.class
